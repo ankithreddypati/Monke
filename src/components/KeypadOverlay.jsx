@@ -11,10 +11,8 @@ const KeypadOverlay = ({ playerRef, onCorrectCode }) => {
   const [code, setCode] = useState('');
   const correctCode = '1337';
 
-  // Monitor key presses for interaction and code input
   useEffect(() => {
     const handleKeyPress = (event) => {
-      // Handle F key for activating keypad
       if (event.code === "KeyF" && showPrompt && !isActive) {
         event.preventDefault();
         setIsActive(true);

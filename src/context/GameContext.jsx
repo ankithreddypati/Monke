@@ -1,8 +1,7 @@
 
-// src/context/GameContext.jsx
+
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { gameStateService } from '../services/gameStateService';
-import awsConfig from '../config/aws-config';
+import { websocketService } from '../services/webSocketService';
 
 const GameContext = createContext(null);
 const MAX_ENERGY = 100;
@@ -34,7 +33,8 @@ export const useGame = () => {
 export const GameProvider = ({ children }) => {
   // Game state
   const [gameState, setGameState] = useState('playing');
-  const [currentLevel, setCurrentLevel] = useState(2);
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [completedLevels, setCompletedLevels] = useState(new Set());
   const playerRef = useRef(null);
   
   // Inventory state
@@ -44,6 +44,11 @@ export const GameProvider = ({ children }) => {
   const [isRubbing, setIsRubbing] = useState(false);
   const rubbingTimer = useRef(null);
   const rubbingStartTime = useRef(null);
+
+  const [gameProgress, setGameProgress] = useState({
+    daysSpent: 0,
+    currentLevel: 1,
+  });
 
   // Stats state
   const [energy, setEnergy] = useState(MAX_ENERGY);
@@ -94,7 +99,6 @@ export const GameProvider = ({ children }) => {
   };
 
   const resetGame = () => {
-    // Respawn at current level's spawn point
     if (playerRef.current) {
       const spawnPoint = LEVEL_CONFIG[currentLevel].spawnPoint;
       playerRef.current.setTranslation({
@@ -102,8 +106,6 @@ export const GameProvider = ({ children }) => {
         y: spawnPoint[1],
         z: spawnPoint[2]
       }, true);
-
-      // Reset velocity to prevent momentum carrying over
       playerRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
 
@@ -112,6 +114,30 @@ export const GameProvider = ({ children }) => {
     setScore(score); // Maintain the current score
     clearInventory();
     setGameState('playing');
+    // Don't reset completed levels or current level on death
+  };
+
+  const completeLevel = (levelNumber, user, isConnected) => {
+    if (completedLevels.has(levelNumber)) {
+      console.log(`Level ${levelNumber} already completed, not sending duplicate data`);
+      return;
+    }
+
+    if (websocketService.isConnected && user && !user.isGuest && isConnected) {
+      websocketService.sendMessage({
+        type: 'game_stats',
+        data: {
+          type: 'level_complete',
+          level: levelNumber,
+          daysSpent: score,
+          timestamp: Date.now()
+        }
+      });
+      
+      setCompletedLevels(prev => new Set([...prev, levelNumber]));
+    }
+    
+    setCurrentLevel(prev => prev + 1);
   };
 
   const eatBanana = () => {
@@ -130,10 +156,12 @@ export const GameProvider = ({ children }) => {
     });
   };
 
+  // ... [Previous helper functions remain the same]
   const isRock = (item) => item?.type === 'rock';
   const isTorch = (item) => item?.type === 'torch';
   const getRockCount = () => [leftHandItem, rightHandItem].filter(isRock).length;
 
+  // ... [Item management functions remain the same]
   const addItem = (item) => {
     if (gameState !== 'playing') return false;
     
@@ -176,6 +204,7 @@ export const GameProvider = ({ children }) => {
     return null;
   };
 
+  // ... [Rubbing mechanics remain the same]
   const startRubbing = () => {
     if (gameState !== 'playing') return;
     
@@ -219,6 +248,21 @@ export const GameProvider = ({ children }) => {
     stopRubbing();
   };
 
+  // Updated game completion function
+  const completeGame = (user, isConnected) => {
+    if (websocketService.isConnected && user && !user.isGuest && isConnected) {
+      websocketService.sendMessage({
+        type: 'game_stats',
+        data: {
+          type: 'game_completed',
+          daysToComplete: score,
+          timestamp: Date.now()
+        }
+      });
+    }
+    setGameState('completed');
+  };
+
   const value = {
     // Game state
     gameState,
@@ -234,6 +278,8 @@ export const GameProvider = ({ children }) => {
     rightHandRock: isRock(rightHandItem) ? rightHandItem : null,
     currentLevel,
     isRubbing,
+    completedLevels,
+    setCompletedLevels,
     // Functions
     addItem,
     dropActiveItem,
@@ -242,12 +288,15 @@ export const GameProvider = ({ children }) => {
     getRubbingProgress,
     clearInventory,
     setCurrentLevel,
+    completeLevel,
+    completeGame,
     // Stats
     energy,
     isDead,
     score,
     eatBanana,
-    takeDamage
+    takeDamage,
+    gameProgress,
   };
 
   return (

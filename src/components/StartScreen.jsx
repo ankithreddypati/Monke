@@ -1,6 +1,3 @@
-
-
-// StartScreen.jsx
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { authService } from '../services/authService';
@@ -33,14 +30,11 @@ export const StartScreen = ({ onStart }) => {
   
     try {
       const user = await authService.signIn(formData.username, formData.password);
-      
-      // Create a proper user object using the response from authService
       const authenticatedUser = {
         username: user.username,
         isGuest: false,
         isSignedIn: true
       };
-      
       console.log('Authentication successful:', authenticatedUser);
       onStart(formData.username, authenticatedUser);
     } catch (error) {
@@ -112,8 +106,6 @@ export const StartScreen = ({ onStart }) => {
     onStart(guestId, guestUser);
   };
 
-
-
   const commonInputStyle = {
     width: '100%',
     padding: '1rem',
@@ -124,7 +116,8 @@ export const StartScreen = ({ onStart }) => {
     color: '#fff',
     fontSize: '1.1rem',
     transition: 'all 0.3s ease',
-    outline: 'none'
+    outline: 'none',
+    boxSizing: 'border-box'
   };
 
   const commonButtonStyle = {
@@ -149,20 +142,22 @@ export const StartScreen = ({ onStart }) => {
       <input
         type={showPassword ? "text" : "password"}
         name="password"
+        id="password"
         placeholder="Password"
         value={formData.password}
         onChange={handleInputChange}
+        autoComplete="current-password"
+        aria-label="Password"
         style={{
           ...commonInputStyle,
           marginBottom: 0,
-          paddingRight: '2.5rem',
-          width: '100%',
-          boxSizing: 'border-box'
+          paddingRight: '2.5rem'
         }}
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
+        aria-label={showPassword ? "Hide password" : "Show password"}
         style={{
           position: 'absolute',
           right: '0.75rem',
@@ -194,9 +189,11 @@ export const StartScreen = ({ onStart }) => {
             <input
               type="text"
               name="code"
+              id="verification-code"
               placeholder="Enter verification code"
               value={formData.code}
               onChange={handleInputChange}
+              autoComplete="one-time-code"
               style={commonInputStyle}
             />
             <button
@@ -227,17 +224,21 @@ export const StartScreen = ({ onStart }) => {
             <input
               type="text"
               name="username"
+              id="signup-username"
               placeholder="Username"
               value={formData.username}
               onChange={handleInputChange}
+              autoComplete="username"
               style={commonInputStyle}
             />
             <input
               type="email"
               name="email"
+              id="signup-email"
               placeholder="Email"
               value={formData.email}
               onChange={handleInputChange}
+              autoComplete="email"
               style={commonInputStyle}
             />
             {renderPasswordInput()}
@@ -260,9 +261,11 @@ export const StartScreen = ({ onStart }) => {
             <input
               type="text"
               name="username"
+              id="signin-username"
               placeholder="Username"
               value={formData.username}
               onChange={handleInputChange}
+              autoComplete="username"
               style={commonInputStyle}
             />
             {renderPasswordInput()}
@@ -293,7 +296,7 @@ export const StartScreen = ({ onStart }) => {
       backgroundColor: 'rgba(0, 0, 0, 0.7)',
       zIndex: 1000,
       backdropFilter: 'blur(5px)',
-      fontFamily: '"Cinzel", serif'
+      fontFamily: '"Press Start 2P", system-ui, -apple-system, sans-serif'
     }}>
       <div style={{
         background: 'linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(20, 20, 20, 0.95))',
@@ -410,7 +413,7 @@ export const StartScreen = ({ onStart }) => {
 
       <style>
         {`
-          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
           
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
@@ -424,6 +427,10 @@ export const StartScreen = ({ onStart }) => {
           input:focus {
             border-color: #FFD700;
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+          }
+          
+          .space-y-4 > * + * {
+            margin-top: 1rem;
           }
         `}
       </style>

@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { websocketService } from './services/webSocketService';
 import { audioRecorderService } from './services/audioRecorderService';
 import { initializeGameSounds } from './services/AudioManager';
+import { audioManager } from './services/AudioManager';
+
 
 const keyboardMap = [
   { name: "forward", keys: ["KeyW"] },
@@ -54,40 +56,47 @@ function GameComponent() {
     }
   }, []);
 
-  const startRecording = useCallback(async () => {
-    if (isRecording || !wsConnected) return;
-    try {
-      await audioRecorderService.startRecording((audioData) => {
-        if (websocketService.isConnected) {
-          websocketService.sendAudioMessage(
-            audioData.data,
-            {
-              currentLevel: 1,
-              position: currentPosition,
-              timestamp: Date.now()
-            },
-            user?.username,
-            "gameId"
-          );
-        }
-      });
-      setIsRecording(true);
-      console.log('Started recording');
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-    }
-  }, [isRecording, wsConnected, user?.username, currentPosition]);
+  // In your startRecording function, add this before starting the recording:
+const startRecording = useCallback(async () => {
+  if (isRecording || !wsConnected) return;
+  try {
+    // Lower background music volume during recording
+    audioManager.setVolume('backgroundSound', 0.05); // Reduce to 10% volume
 
-  const stopRecording = useCallback(() => {
-    if (!isRecording) return;
-    try {
-      audioRecorderService.stopRecording();
-      setIsRecording(false);
-      console.log('Stopped recording');
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-    }
-  }, [isRecording]);
+    await audioRecorderService.startRecording((audioData) => {
+      if (websocketService.isConnected) {
+        websocketService.sendAudioMessage(
+          audioData.data,
+          {
+            currentLevel: 1,
+            position: currentPosition,
+            timestamp: Date.now()
+          },
+          user?.username,
+          "gameId"
+        );
+      }
+    });
+    setIsRecording(true);
+    console.log('Started recording');
+  } catch (error) {
+    console.error('Failed to start recording:', error);
+  }
+}, [isRecording, wsConnected, user?.username, currentPosition]);
+
+// In your stopRecording function, restore the volume:
+const stopRecording = useCallback(() => {
+  if (!isRecording) return;
+  try {
+    audioRecorderService.stopRecording();
+    // Restore background music volume
+    audioManager.setVolume('backgroundSound', 1); 
+    setIsRecording(false);
+    console.log('Stopped recording');
+  } catch (error) {
+    console.error('Failed to stop recording:', error);
+  }
+}, [isRecording]);
 
   const connectWebSocket = useCallback(async () => {
     if (wsRef.current || wsConnected) {
@@ -130,13 +139,13 @@ function GameComponent() {
       console.error('Invalid user data');
       return;
     }
-
+  
     setUser(authenticatedUser);
-
+  
     if (connectTimeoutRef.current) {
       clearTimeout(connectTimeoutRef.current);
     }
-
+  
     connectTimeoutRef.current = setTimeout(() => {
       connectWebSocket();
       connectTimeoutRef.current = null;
@@ -167,13 +176,34 @@ function GameComponent() {
   }, []);
 
   useEffect(() => {
+    if (gameStarted) {
+      // Check if it's already playing to avoid duplicate playback
+      if (!audioManager.isPlaying('backgroundSound')) {
+        audioManager.playSound('backgroundSound', {
+          loop: true,     
+          volume: 0.3,     
+        });
+      }
+    } else {
+      // Stop the music when game is not started/ended
+      audioManager.stopSound('backgroundSound');
+    }
+    
+    // Cleanup when component unmounts
+    return () => {
+      audioManager.stopSound('backgroundSound');
+    };
+  }, [gameStarted]); // This will run whenever gameStarted changes
+
+
+  useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.code === 'KeyT') {
         if (!isRecording) {
           startRecording();
         }
       }
-    };
+    }; 
 
     const handleKeyUp = (event) => {
       if (event.code === 'KeyT') {

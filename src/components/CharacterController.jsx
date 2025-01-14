@@ -16,10 +16,10 @@ import { Fire } from './fire';
 import { audioRecorderService } from "../services/audioRecorderService";
 import { websocketService } from "../services/webSocketService";
 
-// Fall detection constants
-const FALL_DEATH_Y = -30; // Y position below which player dies
-const FALL_VELOCITY_THRESHOLD = -30; // Terminal velocity threshold
-const FALL_TIME_THRESHOLD = 2000; // Time in milliseconds before fall death
+
+const FALL_DEATH_Y = -30;
+const FALL_VELOCITY_THRESHOLD = -50; 
+const FALL_TIME_THRESHOLD = 2000; 
 
 const HeldItem = () => {
   const { leftHandItem, rightHandItem } = useGame();
@@ -115,22 +115,27 @@ export const CharacterController = forwardRef(({ animation = "orcidle", disabled
   const fallStartTime = useRef(null);
   const previousY = useRef(null);
 
-  const {
-    WALK_SPEED,
-    RUN_SPEED,
-    ROTATION_SPEED,
-    JUMP_FORCE,
-  } = useControls("Character Control", {
-    WALK_SPEED: { value: 3, min: 0.1, max: 6, step: 0.1 },
-    RUN_SPEED: { value: 6, min: 0.2, max: 12, step: 0.1 },
-    ROTATION_SPEED: {
-      value: degToRad(1),
-      min: degToRad(0.1),
-      max: degToRad(5),
-      step: degToRad(0.1),
-    },
-    JUMP_FORCE: { value: 5, min: 1, max: 10, step: 0.1 },
-  });
+  // const {
+  //   WALK_SPEED,
+  //   RUN_SPEED,
+  //   ROTATION_SPEED,
+  //   JUMP_FORCE,
+  // } = useControls("Character Control", {
+  //   WALK_SPEED: { value: 3, min: 0.1, max: 6, step: 0.1 },
+  //   RUN_SPEED: { value: 6, min: 0.2, max: 12, step: 0.1 },
+  //   ROTATION_SPEED: {
+  //     value: degToRad(1),
+  //     min: degToRad(0.1),
+  //     max: degToRad(5),
+  //     step: degToRad(0.1),
+  //   },
+  //   JUMP_FORCE: { value: 5, min: 1, max: 10, step: 0.1 },
+  // });
+
+  const WALK_SPEED = 3;
+const RUN_SPEED = 6;
+const ROTATION_SPEED = degToRad(1);
+const JUMP_FORCE = 5;
 
   const rb = useRef(null);
   const container = useRef();

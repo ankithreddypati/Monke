@@ -145,6 +145,8 @@ class WebSocketService {
     }
   }
 
+  
+
   async sendAudioMessage(audioData, gameState, userId, gameId) {
     if (!this.isConnected) {
       throw new Error('WebSocket not connected');

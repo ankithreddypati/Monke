@@ -10,10 +10,8 @@ const ComputerInteraction = ({ playerRef }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Monitor key presses for interaction
   useEffect(() => {
     const handleKeyPress = (event) => {
-      // Only handle F key for starting the game when near the computer
       if (event.code === "KeyF" && showPrompt && !isPlaying) {
         event.preventDefault();
         setIsPlaying(true);
@@ -24,7 +22,6 @@ const ComputerInteraction = ({ playerRef }) => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [showPrompt, isPlaying]);
 
-  // Check player's distance from the computer
   useEffect(() => {
     const checkDistance = () => {
       if (!playerRef.current) return;

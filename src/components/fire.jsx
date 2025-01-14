@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
-export function Fire({ position = [0, 0, 0], visible = false, scale = 1 }) {  // Add scale prop
+export function Fire({ position = [0, 0, 0], visible = false, scale = 1 }) { 
     const group = useRef();
     const { nodes, materials, animations } = useGLTF('models/fire.glb');
     const { actions } = useAnimations(animations, group);
@@ -29,7 +29,7 @@ export function Fire({ position = [0, 0, 0], visible = false, scale = 1 }) {  //
                   <group 
                     name="fire3Group20972" 
                     position={[2.814, 0.39, 1.703]} 
-                    scale={0.269 * scale}  // Multiply the original scale by the scale prop
+                    scale={0.269 * scale} 
                   >
                     <mesh
                       name="0"

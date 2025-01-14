@@ -369,8 +369,7 @@ const PacmanGame = ({ isPlaying, onExit }) => {
   return (
     <div className="relative bg-black p-4 rounded-lg">
       <div className="flex justify-between items-center mb-4">
-        <div className="text-white text-xl">Score: {score}</div>
-        <div className="text-yellow-400 text-xl">Target: {WINNING_SCORE}</div>
+        <div className="text-white text-xl"> USE ARROW KEYS TO PLAY | Score: {score}</div>
         <button
           onClick={handleExit}
           className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"

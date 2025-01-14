@@ -7,13 +7,6 @@
 import React, { useRef, useEffect } from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
 
-/**
- * Animations we have:
- * 1. "MonsterArmature|Bite_Front"
- * 2. "MonsterArmature|Idle"
- * 3. "MonsterArmature|walk"
- * 4. "MonsterArmature|jump"
- */
 
 export function CrabEnemy({ animation = "MonsterArmature|Idle", ...props }) {
   const group = useRef()

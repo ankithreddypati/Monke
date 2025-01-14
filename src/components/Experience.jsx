@@ -1,4 +1,3 @@
-// Experience.jsx
 
 
 import { useState, useRef, useEffect } from "react";
@@ -24,8 +23,7 @@ import { audioManager } from "../services/AudioManager";
 import ComputerInteraction from "./ComputerInteraction";
 import GameCompletionOverlay from "./GameCompletionOverlay";
 import KeypadOverlay from './KeypadOverlay';
-
-
+import { websocketService } from '../services/webSocketService';
 
 const LEVEL_CONFIG = {
   1: {
@@ -34,7 +32,7 @@ const LEVEL_CONFIG = {
     spawnPoint: [-5, 10, -60],
   },
   2: {
-    transitionPoint: [35, 39, -204],
+    transitionPoint: [35, 39, -200],
     nextLevel: 3,
     spawnPoint: [0, 5, -5],
   },
@@ -46,7 +44,17 @@ const LEVEL_CONFIG = {
 };
 
 export const Experience = ({ playerName, gameStarted, user, isConnected, gameState }) => {
-  const { currentLevel: startLevel, setCurrentLevel: setGameLevel, dropActiveItem, leftHandItem, rightHandItem, score } = useGame();
+  const { 
+    currentLevel: startLevel, 
+    setCurrentLevel: setGameLevel, 
+    dropActiveItem, 
+    leftHandItem, 
+    rightHandItem, 
+    score,
+    completeLevel,
+    completedLevels
+  } = useGame();
+
   const [currentAnimation, setCurrentAnimation] = useState("orcidle");
   const [currentLevel, setCurrentLevel] = useState(startLevel);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -61,141 +69,29 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
   const [showVideo, setShowVideo] = useState(true);
   const [playerMovementComplete, setPlayerMovementComplete] = useState(false);
   const [showKeypad, setShowKeypad] = useState(false);
+  
   const shadowCameraRef = useRef();
   const playerRef = useRef(null);
   const { camera } = useThree();
   const level2DoorRef = useRef();
 
-  useEffect(() => {
-    console.log('audio1Finished state:', audio1Finished);
-  }, [audio1Finished]);
-
-  // Level transition check
-  useFrame(() => {
-    if (playerRef.current && !isTransitioning) {
-      const playerPosition = playerRef.current.translation();
-      // console.log('Player position:', playerPosition);
-      
-      const levelConfig = LEVEL_CONFIG[currentLevel];
-      if (levelConfig?.transitionPoint) {
-        const [targetX, targetY, targetZ] = levelConfig.transitionPoint;
-        
-        const isNearTransitionPoint = 
-          Math.abs(playerPosition.x - targetX) < 5 && 
-          Math.abs(playerPosition.y - targetY) < 5 && 
-          Math.abs(playerPosition.z - targetZ) < 5;
-        
-        // console.log('Near transition point:', isNearTransitionPoint);
-        
-        if (isNearTransitionPoint) {
-          handleLevelComplete(currentLevel);
-        }
-      }
-    }
-  });
-
-  // useFrame(() => {
-  //   if (playerRef.current && currentLevel === 2) {
-  //     const playerPosition = playerRef.current.translation();
-  //     const keypadPosition = new Vector3(32, 36, -163);
-      
-  //     const distanceToKeypad = new Vector3(
-  //       playerPosition.x,
-  //       playerPosition.y,
-  //       playerPosition.z
-  //     ).distanceTo(keypadPosition);
-  
-  //     setShowKeypad(distanceToKeypad < 3); // Show keypad when within 3 units
-  //   }
-  // });
-
-  // Cutscene check in Level 3
-  useFrame(() => {
-    if (currentLevel === 3 && !cutsceneTriggered) {
-      const playerPosition = playerRef.current.translation();
-      const playerVector = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
-
-      const triggerPoint = new Vector3(4.5, 5, -178);
-      if (playerVector.distanceTo(triggerPoint) < 2) {
-        triggerCutscene();
-      }
-    }
-  });
-
-  // Cutscene animation
-  useFrame(() => {
-    // Force movement after audio1 is finished
-    if (audio1Finished && !playerMovementComplete) {
-      console.log("Moving player after audio1");
-      const incubationPosition = new Vector3(4.73, 8, -208.7);
-      const playerPosition = playerRef.current.translation();
-      
-      // Calculate distance to target
-      const distanceToTarget = new Vector3(
-        playerPosition.x, 
-        playerPosition.y, 
-        playerPosition.z
-      ).distanceTo(incubationPosition);
-
-      setCurrentAnimation("floating");
-  
-      console.log('Distance to target:', distanceToTarget);
-  
-      // Changed distance threshold to be more generous
-      if (distanceToTarget > 0.5) {  // Changed from 0.1 to 0.5
-        const newPosition = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
-        newPosition.lerp(incubationPosition, 0.02);
-        playerRef.current.setTranslation(newPosition, true);
-  
-        const cameraTarget = new Vector3(
-          newPosition.x+10,
-          newPosition.y + 8,
-          newPosition.z + 15
-        );
-        camera.position.lerp(cameraTarget, 0.02);
-        camera.lookAt(newPosition);
-      } else {
-        // Player has reached destination
-        console.log("Player reached destination - Playing audio2");
-        setPlayerMovementComplete(true);  // This stops the movement
-        setPlayerControlsEnabled(false);
-        
-        // Add a small delay before playing audio2
-        setTimeout(() => {
-          audioManager.playSound("cutscene_part2", {
-            onEnd: () => {
-              console.log("Cutscene part 2 audio finished - Showing video");
-              if (playerRef.current) {
-                setCurrentAnimation('deepsleep');
-              }
-              setAudio2Finished(true);
-              setShowVideo(true);
-              setIsGameComplete(true); 
-              console.log('Game completion state set:', true);
-            },
-          });
-        }, 500);  // 500ms delay
-      }
-    }
-  });
-
-  if (audio2Finished && !isGameComplete) {
-    console.log('Audio2 finished, setting game complete');
-    setIsGameComplete(true);
-  }
-
-  useEffect(() => {
-    console.log('Game completion state changed:', isGameComplete);
-  }, [isGameComplete]);
-
   const handleLevelComplete = async (levelNumber) => {
     if (levelNumber === 3) {
       console.log("Game Complete!");
+      if (user && !user.isGuest && isConnected) {
+        websocketService.sendGameCompletion(score, user.username);
+      }
+      setIsGameComplete(true);
       return;
     }
 
     console.log(`Transitioning from level ${levelNumber} to ${LEVEL_CONFIG[levelNumber].nextLevel}`);
     setIsTransitioning(true);
+
+    if (!completedLevels.has(levelNumber)) {
+      completeLevel(levelNumber, user, isConnected);
+    }
+
     if (leftHandItem) {
       dropActiveItem('left');
     }
@@ -224,9 +120,104 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
     }, 100);
   };
 
+  useEffect(() => {
+    console.log('audio1Finished state:', audio1Finished);
+  }, [audio1Finished]);
+
+  useFrame(() => {
+    if (playerRef.current && !isTransitioning) {
+      const playerPosition = playerRef.current.translation();
+      
+      const levelConfig = LEVEL_CONFIG[currentLevel];
+      if (levelConfig?.transitionPoint) {
+        const [targetX, targetY, targetZ] = levelConfig.transitionPoint;
+        
+        const isNearTransitionPoint = 
+          Math.abs(playerPosition.x - targetX) < 5 && 
+          Math.abs(playerPosition.y - targetY) < 5 && 
+          Math.abs(playerPosition.z - targetZ) < 5;
+        
+        if (isNearTransitionPoint) {
+          handleLevelComplete(currentLevel);
+        }
+      }
+    }
+  });
+
+  useFrame(() => {
+    if (currentLevel === 3 && !cutsceneTriggered) {
+      const playerPosition = playerRef.current.translation();
+      const playerVector = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+
+      const triggerPoint = new Vector3(4.5, 5, -178);
+      if (playerVector.distanceTo(triggerPoint) < 2) {
+        triggerCutscene();
+      }
+    }
+  });
+
+  useFrame(() => {
+    if (audio1Finished && !playerMovementComplete) {
+      console.log("Moving player after audio1");
+      const incubationPosition = new Vector3(4.73, 8, -208.7);
+      const playerPosition = playerRef.current.translation();
+      
+      const distanceToTarget = new Vector3(
+        playerPosition.x, 
+        playerPosition.y, 
+        playerPosition.z
+      ).distanceTo(incubationPosition);
+
+      setCurrentAnimation("floating");
+  
+      console.log('Distance to target:', distanceToTarget);
+  
+      if (distanceToTarget > 0.5) {
+        const newPosition = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+        newPosition.lerp(incubationPosition, 0.02);
+        playerRef.current.setTranslation(newPosition, true);
+  
+        const cameraTarget = new Vector3(
+          newPosition.x+10,
+          newPosition.y + 8,
+          newPosition.z + 15
+        );
+        camera.position.lerp(cameraTarget, 0.02);
+        camera.lookAt(newPosition);
+      } else {
+        console.log("Player reached destination - Playing audio2");
+        setPlayerMovementComplete(true); 
+        setPlayerControlsEnabled(false);
+        
+        setTimeout(() => {
+          audioManager.playSound("cutscene_part2", {
+            onEnd: () => {
+              console.log("Cutscene part 2 audio finished - Showing video");
+              if (playerRef.current) {
+                setCurrentAnimation('deepsleep');
+              }
+              setAudio2Finished(true);
+              setShowVideo(true);
+              setIsGameComplete(true); 
+              console.log('Game completion state set:', true);
+            },
+          });
+        }, 500);
+      }
+    }
+  });
+
+  if (audio2Finished && !isGameComplete) {
+    console.log('Audio2 finished, setting game complete');
+    setIsGameComplete(true);
+  }
+
+  useEffect(() => {
+    console.log('Game completion state changed:', isGameComplete);
+  }, [isGameComplete]);
+
   const triggerCutscene = () => {
     console.log("Cutscene triggered");
-    // Reset all states
     setCutsceneTriggered(true);
     setCutsceneProgress(0);
     setAudio1Finished(false);
@@ -234,13 +225,16 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
     setPlayerMovementComplete(false);
     setShowVideo(false);
     
-    // Play the first cutscene audio
     audioManager.playSound("cutscene_part1", {
       onEnd: () => {
         console.log("Cutscene part 1 audio finished - Starting movement");
-        setAudio1Finished(true);  // This will trigger the movement
+        setAudio1Finished(true);
       },
     });
+
+    if (user && !user.isGuest && isConnected) {
+      websocketService.sendGameCompletion(score, user.username);
+    }
   };
 
   return (
@@ -265,7 +259,7 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         />
       </directionalLight>
 
-      <Physics >
+      <Physics>
         <Skybox />
         <CharacterController
           ref={playerRef}
@@ -311,60 +305,53 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
               isLit={torchLit}
               playerRef={playerRef}
             />
-            {/* <Banana id="banana1" position={[2, 0, -10.0]} /> */}
             <Banana id="banana2" position={[43, 5, -190]} />
           </>
         )}
 
-                {currentLevel === 2 && (
-                  <>
-                    <Level2 />
-                    <Level2door 
-                      ref={level2DoorRef}
-                      position={[36, 37.9, -199]} 
-                      playerRef={playerRef} 
-                    />
-                    <ComputerInteraction 
-                      playerRef={playerRef}
-                      onScoreReached={() => {
-                        if (level2DoorRef.current) {
-                          level2DoorRef.current.playOpenAnimation();
-                        }
-                      }}
-                    />
+        {currentLevel === 2 && (
+          <>
+            <Level2 />
+            <Level2door 
+              ref={level2DoorRef}
+              position={[36, 37.9, -199]} 
+              playerRef={playerRef} 
+            />
+            <ComputerInteraction 
+              playerRef={playerRef}
+              onScoreReached={() => {
+                if (level2DoorRef.current) {
+                  level2DoorRef.current.playOpenAnimation();
+                }
+              }}
+            />
 
+            <KeypadOverlay 
+              playerRef={playerRef}
+              onCorrectCode={() => {
+                if (level2DoorRef.current) {
+                  level2DoorRef.current.playOpenAnimation();
+                }
+              }}
+            />
 
-                    <KeypadOverlay 
-                          playerRef={playerRef}
-                          onCorrectCode={() => {
-                            if (level2DoorRef.current) {
-                              level2DoorRef.current.playOpenAnimation();
-                            }
-                          }}
-                        />
-
-                      <NPCController
-                        playerRef={playerRef}
-                        position={[64, 37, -144]} // Adjust position as needed
-                        defaultAnimation="dance"
-                        noticeRange={8}
-                        talkRange={3}
-                        walkSpeed={5}
-                        user={user}
-                        gameId={gameState?.id}
-                        gameState={gameState}
-                        botId={import.meta.env.VITE_LEX_BOT_LEVEL2_ID} 
-                        botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL2_ID} 
-                      />
-                                          <Banana id="banana13" position={[35, 39, -201]} />
-                                <Banana id="banana14" position={[54, 37, -143]} />
-                                {/* <Banana id="banana15" position={[32, 36, -163]} /> */}
-
-                  </>
-                )}
-
-
-       
+            <NPCController
+              playerRef={playerRef}
+              position={[64, 37, -144]} 
+              defaultAnimation="dance"
+              noticeRange={8}
+              talkRange={3}
+              walkSpeed={5}
+              user={user}
+              gameId={gameState?.id}
+              gameState={gameState}
+              botId={import.meta.env.VITE_LEX_BOT_LEVEL2_ID} 
+              botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL2_ID} 
+            />
+            <Banana id="banana13" position={[35, 39, -201]} />
+            <Banana id="banana14" position={[54, 37, -143]} />
+          </>
+        )}
 
         {currentLevel === 3 && (
           <>
@@ -409,8 +396,6 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         />
       )}
 
-
-
       {isTransitioning && (
         <Html fullscreen>
           <div
@@ -429,5 +414,5 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         </Html>
       )}
     </>
-  );
-};
+   );
+ };

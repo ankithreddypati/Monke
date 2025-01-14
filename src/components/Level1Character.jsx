@@ -7,12 +7,10 @@ export function Level1Character({ animation = "orcidle", ...props }) {
   const { actions } = useAnimations(animations, group);
 
   useEffect(() => {
-    // Reset and stop all animations
     Object.values(actions).forEach((action) => {
       action.reset().fadeOut(0.5);
     });
 
-    // Play the new animation if it exists
     if (actions[animation]) {
       actions[animation].reset().fadeIn(0.5).play();
     } else {
