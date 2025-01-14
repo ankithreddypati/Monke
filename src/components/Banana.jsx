@@ -13,7 +13,7 @@ export function Banana({ id, position, scale = 1 }) {
 
   useFrame((state, delta) => {
     if (bananaRef.current) {
-      bananaRef.current.rotation.y += delta * 2;
+      bananaRef.current.rotation.y += delta * 2; 
     }
   });
 

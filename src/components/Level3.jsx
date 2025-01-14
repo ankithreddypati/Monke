@@ -3,8 +3,8 @@ import { RigidBody } from "@react-three/rapier";
 import VideoScreen from "./VideoScreen";
 
 export const Level3 = ({ showVideo = false }) => {
-  const { scene: level3Scene } = useGLTF("/models/jan12level3mainpathagain-transformed.glb");
-  const { scene: decorations } = useGLTF("/models/jan12level3sidepathagain-transformed.glb");
+  const { scene: level3Scene } = useGLTF("/models/level3mains.glb");
+  const { scene: decorations } = useGLTF("/models/level3sides.glb");
 
   return (
     <>

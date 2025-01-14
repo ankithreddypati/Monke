@@ -7,3 +7,6 @@ npm install .
 npm run dev
 
 checkout .envexample 
+
+
+AWS cdk resources and lambda handler here :

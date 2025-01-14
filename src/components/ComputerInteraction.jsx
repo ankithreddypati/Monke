@@ -50,13 +50,24 @@ const ComputerInteraction = ({ playerRef }) => {
 
   return (
     <>
-      {showPrompt && (
+            {showPrompt && (
         <Html position={[COMPUTER_POSITION.x, COMPUTER_POSITION.y + 2, COMPUTER_POSITION.z]} center>
-          <div className="p-4 bg-black bg-opacity-80 text-white rounded-lg text-lg">
-            Press F to play Pacman
+          <div
+            style={{
+              padding: '16px',
+              backgroundColor: 'rgba(1,1,1,1)',
+              color: 'white',
+              borderRadius: '8px',
+              fontSize: '18px',
+              textAlign: 'center',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Press F to play
           </div>
         </Html>
       )}
+
 
       {isPlaying && (
         <Html

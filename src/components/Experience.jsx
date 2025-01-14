@@ -1,4 +1,4 @@
-// // Experience.jsx
+// Experience.jsx
 
 
 import { useState, useRef, useEffect } from "react";
@@ -11,7 +11,7 @@ import { CharacterController } from "./CharacterController";
 import { Level1 } from "./Level1";
 import { Level2 } from "./Level2";
 import { Level3 } from "./Level3";
-import { Level1NPCController } from "./Level1NPCController";
+import { NPCController } from "./NPCController";
 import { CrabController } from "./CrabController";
 import { Rock } from "./Rock";
 import { Fire } from "./fire";
@@ -22,6 +22,10 @@ import { Level2door } from "./level2door";
 import { RobotController } from "./RobotController";
 import { audioManager } from "../services/AudioManager";
 import ComputerInteraction from "./ComputerInteraction";
+import GameCompletionOverlay from "./GameCompletionOverlay";
+import KeypadOverlay from './KeypadOverlay';
+
+
 
 const LEVEL_CONFIG = {
   1: {
@@ -30,7 +34,7 @@ const LEVEL_CONFIG = {
     spawnPoint: [-5, 10, -60],
   },
   2: {
-    transitionPoint: [35, 39, -199],
+    transitionPoint: [35, 39, -204],
     nextLevel: 3,
     spawnPoint: [0, 5, -5],
   },
@@ -42,7 +46,7 @@ const LEVEL_CONFIG = {
 };
 
 export const Experience = ({ playerName, gameStarted, user, isConnected, gameState }) => {
-  const { currentLevel: startLevel, setCurrentLevel: setGameLevel, dropActiveItem, leftHandItem, rightHandItem } = useGame();
+  const { currentLevel: startLevel, setCurrentLevel: setGameLevel, dropActiveItem, leftHandItem, rightHandItem, score } = useGame();
   const [currentAnimation, setCurrentAnimation] = useState("orcidle");
   const [currentLevel, setCurrentLevel] = useState(startLevel);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -53,8 +57,10 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
   const [audio1Finished, setAudio1Finished] = useState(false);
   const [audio2Finished, setAudio2Finished] = useState(false);
   const [playerControlsEnabled, setPlayerControlsEnabled] = useState(true);
+  const [isGameComplete, setIsGameComplete] = useState(false);
   const [showVideo, setShowVideo] = useState(true);
   const [playerMovementComplete, setPlayerMovementComplete] = useState(false);
+  const [showKeypad, setShowKeypad] = useState(false);
   const shadowCameraRef = useRef();
   const playerRef = useRef(null);
   const { camera } = useThree();
@@ -88,6 +94,21 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
     }
   });
 
+  // useFrame(() => {
+  //   if (playerRef.current && currentLevel === 2) {
+  //     const playerPosition = playerRef.current.translation();
+  //     const keypadPosition = new Vector3(32, 36, -163);
+      
+  //     const distanceToKeypad = new Vector3(
+  //       playerPosition.x,
+  //       playerPosition.y,
+  //       playerPosition.z
+  //     ).distanceTo(keypadPosition);
+  
+  //     setShowKeypad(distanceToKeypad < 3); // Show keypad when within 3 units
+  //   }
+  // });
+
   // Cutscene check in Level 3
   useFrame(() => {
     if (currentLevel === 3 && !cutsceneTriggered) {
@@ -115,6 +136,8 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         playerPosition.y, 
         playerPosition.z
       ).distanceTo(incubationPosition);
+
+      setCurrentAnimation("floating");
   
       console.log('Distance to target:', distanceToTarget);
   
@@ -147,12 +170,23 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
               }
               setAudio2Finished(true);
               setShowVideo(true);
+              setIsGameComplete(true); 
+              console.log('Game completion state set:', true);
             },
           });
         }, 500);  // 500ms delay
       }
     }
   });
+
+  if (audio2Finished && !isGameComplete) {
+    console.log('Audio2 finished, setting game complete');
+    setIsGameComplete(true);
+  }
+
+  useEffect(() => {
+    console.log('Game completion state changed:', isGameComplete);
+  }, [isGameComplete]);
 
   const handleLevelComplete = async (levelNumber) => {
     if (levelNumber === 3) {
@@ -231,7 +265,7 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         />
       </directionalLight>
 
-      <Physics debug>
+      <Physics >
         <Skybox />
         <CharacterController
           ref={playerRef}
@@ -253,15 +287,18 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
               attackRange={2} 
               speed={4} 
             />
-            <Level1NPCController
+            <NPCController
               playerRef={playerRef}
               position={[28.5, 1, -115]}
+              defaultAnimation="praying" 
               noticeRange={8}
               talkRange={3}
               walkSpeed={5}
               user={user}
               gameId={gameState?.id}
               gameState={gameState}
+              botId={import.meta.env.VITE_LEX_BOT_LEVEL1_ID}
+              botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL1_ID}
             />
             <Rock id="rock1" position={[23.5, -0.5, -92]} playerRef={playerRef} />
             <Rock id="rock2" position={[36, -0.5, -96.5]} playerRef={playerRef} />
@@ -274,7 +311,7 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
               isLit={torchLit}
               playerRef={playerRef}
             />
-            <Banana id="banana1" position={[2, 0, -10.0]} />
+            {/* <Banana id="banana1" position={[2, 0, -10.0]} /> */}
             <Banana id="banana2" position={[43, 5, -190]} />
           </>
         )}
@@ -284,7 +321,7 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
                     <Level2 />
                     <Level2door 
                       ref={level2DoorRef}
-                      position={[35, 37.9, -199]} 
+                      position={[36, 37.9, -199]} 
                       playerRef={playerRef} 
                     />
                     <ComputerInteraction 
@@ -295,8 +332,33 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
                         }
                       }}
                     />
-                    <Banana id="banana13" position={[35, 39, -199]} />
-                                {/* <Banana id="banana14" position={[54, 37, -143]} /> */}
+
+
+                    <KeypadOverlay 
+                          playerRef={playerRef}
+                          onCorrectCode={() => {
+                            if (level2DoorRef.current) {
+                              level2DoorRef.current.playOpenAnimation();
+                            }
+                          }}
+                        />
+
+                      <NPCController
+                        playerRef={playerRef}
+                        position={[64, 37, -144]} // Adjust position as needed
+                        defaultAnimation="dance"
+                        noticeRange={8}
+                        talkRange={3}
+                        walkSpeed={5}
+                        user={user}
+                        gameId={gameState?.id}
+                        gameState={gameState}
+                        botId={import.meta.env.VITE_LEX_BOT_LEVEL2_ID} 
+                        botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL2_ID} 
+                      />
+                                          <Banana id="banana13" position={[35, 39, -201]} />
+                                <Banana id="banana14" position={[54, 37, -143]} />
+                                {/* <Banana id="banana15" position={[32, 36, -163]} /> */}
 
                   </>
                 )}
@@ -319,6 +381,35 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
           </>
         )}
       </Physics>
+
+      {isGameComplete && (
+        <GameCompletionOverlay 
+          score={score}
+          onRestart={() => {
+            setCurrentLevel(1);
+            setGameLevel(1);
+            setIsGameComplete(false);
+            setCutsceneTriggered(false);
+            setAudio1Finished(false);
+            setAudio2Finished(false);
+            setShowVideo(false);
+            setPlayerMovementComplete(false);
+            setCurrentAnimation("orcidle");
+            
+            if (playerRef.current) {
+              const spawnPoint = LEVEL_CONFIG[1].spawnPoint;
+              playerRef.current.setTranslation({
+                x: spawnPoint[0],
+                y: spawnPoint[1],
+                z: spawnPoint[2],
+              });
+            }
+          }}
+          user={user}
+        />
+      )}
+
+
 
       {isTransitioning && (
         <Html fullscreen>

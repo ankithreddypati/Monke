@@ -18,7 +18,7 @@ export const Level2door = forwardRef(({ position }, ref) => {
 
   return (
     <RigidBody type="fixed" colliders="trimesh">
-      <group position={position} scale={2.5}>
+      <group position={position} scale={5.5}>
         <group ref={group} dispose={null}>
           <group name="Sketchfab_Scene">
             <group name="Object_4" scale={0.01}>

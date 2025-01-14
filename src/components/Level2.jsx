@@ -3,7 +3,7 @@ import { useGLTF } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
 
 export const Level2 = () => {
-  const { scene: level2Scene } = useGLTF("/models/jan6level2withcomputer2-transformed.glb");
+  const { scene: level2Scene } = useGLTF("/models/level2.glb");
 
   return (
     <RigidBody type="fixed" colliders="trimesh">

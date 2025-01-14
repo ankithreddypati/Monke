@@ -12,10 +12,10 @@ import { audioRecorderService } from './services/audioRecorderService';
 import { initializeGameSounds } from './services/AudioManager';
 
 const keyboardMap = [
-  { name: "forward", keys: ["ArrowUp", "KeyW"] },
-  { name: "backward", keys: ["ArrowDown", "KeyS"] },
-  { name: "left", keys: ["ArrowLeft", "KeyA"] },
-  { name: "right", keys: ["ArrowRight", "KeyD"] },
+  { name: "forward", keys: ["KeyW"] },
+  { name: "backward", keys: [ "KeyS"] },
+  { name: "left", keys: ["KeyA"] },
+  { name: "right", keys: [ "KeyD"] },
   { name: "run", keys: ["Shift"] },
   { name: "jump", keys: ["Space"] },
   { name: "talk", keys: ["KeyT"] },

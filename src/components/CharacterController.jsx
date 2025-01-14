@@ -124,7 +124,7 @@ export const CharacterController = forwardRef(({ animation = "orcidle", disabled
     WALK_SPEED: { value: 3, min: 0.1, max: 6, step: 0.1 },
     RUN_SPEED: { value: 6, min: 0.2, max: 12, step: 0.1 },
     ROTATION_SPEED: {
-      value: degToRad(0.5),
+      value: degToRad(1),
       min: degToRad(0.1),
       max: degToRad(5),
       step: degToRad(0.1),
@@ -352,7 +352,7 @@ export const CharacterController = forwardRef(({ animation = "orcidle", disabled
     container.current.rotation.y = MathUtils.lerp(
       container.current.rotation.y,
       rotationTarget.current,
-      0.1
+      ROTATION_SPEED
     );
 
     cameraPosition.current.getWorldPosition(cameraWorldPosition.current);

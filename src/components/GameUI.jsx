@@ -1,26 +1,32 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { audioManager } from '../services/AudioManager';
-import { Volume2, VolumeX, LogOut } from 'lucide-react';
+import { Volume2, VolumeX, LogOut, HelpCircle } from 'lucide-react';
 
 export function GameUI({ onSignOut, user }) {
   const { energy, score, gameState, currentLevel } = useGame();
   const [isMuted, setIsMuted] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+
+  const baseStyles = {
+    fontFamily: "'Press Start 2P', system-ui, -apple-system, sans-serif",
+    letterSpacing: '0.5px'
+  };
 
   const handleMuteToggle = () => {
     const newMuteState = !isMuted;
     setIsMuted(newMuteState);
     
-    // Mute/unmute all sounds
     audioManager.sounds.forEach((sound) => {
-      sound.muted = newMuteState;
+        sound.muted = newMuteState;
     });
-  };
+};
 
   return (
     <>
       {/* HUD */}
       <div style={{
+        ...baseStyles,
         position: 'fixed',
         top: '20px',
         right: '20px',
@@ -33,15 +39,73 @@ export function GameUI({ onSignOut, user }) {
         zIndex: 10,
         minWidth: '200px'
       }}>
-        {/* User Info */}
+        {/* User Info and Help Button Row */}
         <div style={{
-          color: 'white',
-          fontSize: '16px',
-          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
           marginBottom: '10px',
-          textAlign: 'center'
+          position: 'relative'
         }}>
-          {`Monke ${user?.username || 'Guest Monke'}`}
+          {/* Username Box */}
+          <div style={{
+            flex: 1,
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '5px 10px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: '2px solid #ffffff',
+            borderRadius: '8px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {`Monke ${user?.username || 'Guest Monke'}`}
+          </div>
+
+          {/* Help Button */}
+          <button
+            onMouseEnter={() => setShowControls(true)}
+            onMouseLeave={() => setShowControls(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '5px',
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: '2px solid #ffffff',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            <HelpCircle size={20} color="white" />
+          </button>
+
+          {/* Controls Tooltip */}
+          {showControls && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: '0',
+              marginTop: '10px',
+              padding: '15px',
+              background: 'rgba(0, 0, 0, 0.8)',
+              border: '2px solid #ffffff',
+              borderRadius: '10px',
+              color: 'white',
+              fontSize: '10px',
+              whiteSpace: 'nowrap',
+              zIndex: 20
+            }}>
+              <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>Controls:</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div>WASD - Move</div>
+                <div>SPACE - Jump</div>
+                <div>SHIFT - Run</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Level and Day Counter Row */}
@@ -59,14 +123,14 @@ export function GameUI({ onSignOut, user }) {
           }}>
             <span style={{
               color: 'white',
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: 'bold'
             }}>
               Level
             </span>
             <div style={{
               color: 'white',
-              fontSize: '18px',
+              fontSize: '14px',
               fontWeight: 'bold',
               textAlign: 'center',
               padding: '5px',
@@ -87,14 +151,14 @@ export function GameUI({ onSignOut, user }) {
           }}>
             <span style={{
               color: 'white',
-              fontSize: '14px',
+              fontSize: '12px',
               fontWeight: 'bold'
             }}>
               Day
             </span>
             <div style={{
               color: 'white',
-              fontSize: '18px',
+              fontSize: '14px',
               fontWeight: 'bold',
               textAlign: 'center',
               padding: '5px',
@@ -115,7 +179,7 @@ export function GameUI({ onSignOut, user }) {
         }}>
           <span style={{
             color: 'white',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: 'bold'
           }}>
             Energy
@@ -191,6 +255,7 @@ export function GameUI({ onSignOut, user }) {
       {/* Game Over Message */}
       {gameState === 'game-over' && (
         <div style={{
+          ...baseStyles,
           position: 'fixed',
           top: '50%',
           left: '50%',

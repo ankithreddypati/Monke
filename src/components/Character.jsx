@@ -8,7 +8,7 @@ import React, { useEffect, useRef } from "react";
 
 export function Character({ animation, ...props }) {
   const group = useRef();
-  const { nodes, materials, animations } = useGLTF("/models/dec27test1-transformed.glb");
+  const { nodes, materials, animations } = useGLTF("/models/monkecharacter.glb");
   const { actions } = useAnimations(animations, group);
 
   useEffect(() => {
@@ -40,4 +40,4 @@ export function Character({ animation, ...props }) {
   );
 }
 
-useGLTF.preload("/models/dec27test1-transformed.glb");
+useGLTF.preload("/models/monkecharacter.glb");

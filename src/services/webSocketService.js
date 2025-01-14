@@ -1,4 +1,4 @@
-// services/webSocketService.js
+// src/services/webSocketService.js
 import { fetchAuthSession } from 'aws-amplify/auth';
 import awsConfig from '../config/aws-config';
 
@@ -120,6 +120,29 @@ class WebSocketService {
     
     this.isConnecting = false;
     this.connectionInfo = { userId: null, isGuest: false, callback: null };
+  }
+
+  async sendGameCompletion(daysToComplete, username) {
+    if (!this.isConnected) {
+      console.error('WebSocket not connected');
+      return;
+    }
+
+    const message = {
+      type: 'game_stats',
+      data: {
+        type: 'game_completed',
+        daysToComplete,
+        username,
+        timestamp: Date.now()
+      }
+    };
+
+    try {
+      await this.sendMessage(message);
+    } catch (error) {
+      console.error('Failed to send game completion:', error);
+    }
   }
 
   async sendAudioMessage(audioData, gameState, userId, gameId) {
