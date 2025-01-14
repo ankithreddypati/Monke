@@ -53,4 +53,4 @@ export function Level1Character({ id , animation = "orcidle", ...props }) {
   );
 }
 
-useGLTF.preload('models/npcanimationstest.glb');
+useGLTF.preload('models/monkecharacter.glb');
