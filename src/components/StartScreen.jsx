@@ -23,6 +23,32 @@ export const StartScreen = ({ onStart }) => {
     setError('');
   };
 
+  // const handleSignIn = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError('');
+  
+  //   try {
+  //     const user = await authService.signIn(formData.username, formData.password);
+  //     const authenticatedUser = {
+  //       username: user.username,
+  //       isGuest: false,
+  //       isSignedIn: true
+  //     };
+  //     console.log('Authentication successful:', authenticatedUser);
+  //     onStart(formData.username, authenticatedUser);
+  //   } catch (error) {
+  //     if (error.message.includes('User is not confirmed')) {
+  //       setMode('verify');
+  //       setError('Please verify your email first');
+  //     } else {
+  //       setError(error.message || 'Sign in failed');
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -35,8 +61,9 @@ export const StartScreen = ({ onStart }) => {
         isGuest: false,
         isSignedIn: true
       };
-      console.log('Authentication successful:', authenticatedUser);
-      onStart(formData.username, authenticatedUser);
+      console.log('Authentication successful, initiating game start:', authenticatedUser);
+      await onStart(formData.username, authenticatedUser); // Wait for onStart
+      console.log('Game start initiated');
     } catch (error) {
       if (error.message.includes('User is not confirmed')) {
         setMode('verify');
@@ -47,7 +74,7 @@ export const StartScreen = ({ onStart }) => {
     } finally {
       setLoading(false);
     }
-  };
+};
 
   const handleSignUp = async (e) => {
     e.preventDefault();

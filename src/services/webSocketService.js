@@ -14,7 +14,6 @@ class WebSocketService {
   }
 
   async connect(onMessage, userId, isGuest = false) {
-    // Prevent multiple connection attempts
     if (this.isConnecting || this.ws) {
       console.log('Connection already exists or in progress');
       return this.ws;
@@ -24,7 +23,6 @@ class WebSocketService {
       throw new Error('userId is required');
     }
 
-    // Store connection info
     this.connectionInfo = { userId, isGuest, callback: onMessage };
     this.isConnecting = true;
 
@@ -48,7 +46,7 @@ class WebSocketService {
         }
       }
 
-      // Create WebSocket connection
+      console.log('Connecting to WebSocket:', wsUrl.toString());
       this.ws = new WebSocket(wsUrl.toString());
       
       return new Promise((resolve, reject) => {
@@ -86,6 +84,7 @@ class WebSocketService {
       if (this.connectionInfo.callback) {
         try {
           const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
           this.connectionInfo.callback(data);
         } catch (error) {
           console.error('Error parsing message:', error);
@@ -95,7 +94,7 @@ class WebSocketService {
     };
 
     this.ws.onclose = (event) => {
-      console.log('WebSocket closed:', event.code);
+      console.log('WebSocket closed:', event.code, event.reason);
       this.cleanup();
     };
 
@@ -106,12 +105,10 @@ class WebSocketService {
 
   cleanup() {
     if (this.ws) {
-      // Remove all listeners before closing
       this.ws.onmessage = null;
       this.ws.onclose = null;
       this.ws.onerror = null;
       
-      // Close the connection
       if (this.ws.readyState === WebSocket.OPEN) {
         this.ws.close(1000, 'Normal closure');
       }
@@ -124,7 +121,7 @@ class WebSocketService {
 
   async sendGameCompletion(daysToComplete, username) {
     if (!this.isConnected) {
-      console.error('WebSocket not connected');
+      console.error('WebSocket not connected, state:', this.ws?.readyState);
       return;
     }
 
@@ -132,20 +129,21 @@ class WebSocketService {
       type: 'game_stats',
       data: {
         type: 'game_completed',
-        daysToComplete,
+        daysToComplete: parseInt(daysToComplete),
         username,
         timestamp: Date.now()
       }
     };
 
     try {
+      console.log('Sending game completion:', message);
       await this.sendMessage(message);
+      console.log('Game completion sent successfully');
     } catch (error) {
       console.error('Failed to send game completion:', error);
+      throw error; // Propagate error to caller
     }
   }
-
-  
 
   async sendAudioMessage(audioData, gameState, userId, gameId) {
     if (!this.isConnected) {
@@ -188,11 +186,20 @@ class WebSocketService {
 
   sendMessage(message) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket not connected');
+      const state = this.ws?.readyState;
+      const stateMap = {
+        0: 'CONNECTING',
+        1: 'OPEN',
+        2: 'CLOSING',
+        3: 'CLOSED'
+      };
+      console.error('WebSocket not connected, current state:', stateMap[state] || 'NO_CONNECTION');
+      throw new Error(`WebSocket not connected (${stateMap[state] || 'NO_CONNECTION'})`);
     }
 
     try {
       const messageString = typeof message === 'string' ? message : JSON.stringify(message);
+      console.log('Sending WebSocket message:', messageString);
       this.ws.send(messageString);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -206,7 +213,9 @@ class WebSocketService {
   }
 
   get isConnected() {
-    return this.ws?.readyState === WebSocket.OPEN;
+    const connected = this.ws?.readyState === WebSocket.OPEN;
+    console.log('WebSocket connection status:', connected ? 'CONNECTED' : 'NOT_CONNECTED');
+    return connected;
   }
 }
 

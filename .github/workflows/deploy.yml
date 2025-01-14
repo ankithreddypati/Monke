@@ -29,6 +29,9 @@ jobs:
           VITE_LEX_BOT_ALIAS_LEVEL1_ID: ${{ secrets.VITE_LEX_BOT_ALIAS_LEVEL1_ID }}
           VITE_LEX_BOT_LEVEL2_ID: ${{ secrets.VITE_LEX_BOT_LEVEL2_ID }}
           VITE_LEX_BOT_ALIAS_LEVEL2_ID: ${{ secrets.VITE_LEX_BOT_ALIAS_LEVEL2_ID }}
+          VITE_AWS_ACCESS_KEY_ID: ${{ secrets.VITE_AWS_ACCESS_KEY_ID }}
+          VITE_AWS_SECRET_ACCESS_KEY: ${{ secrets.VITE_AWS_SECRET_ACCESS_KEY }}
+
 
       - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v1

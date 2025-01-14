@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
 
-export function Level1Character({ animation = "orcidle", ...props }) {
+export function Level1Character({ id , animation = "orcidle", ...props }) {
   const group = useRef();
   const { nodes, materials, animations } = useGLTF('models/monkecharacter.glb');
   const { actions } = useAnimations(animations, group);

@@ -1,13 +1,15 @@
 
 
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
-import { websocketService } from '../services/webSocketService';
+import { gameService } from '../services/gameService';
 
 const GameContext = createContext(null);
+
+// Game constants
 const MAX_ENERGY = 100;
 const ENERGY_DECAY_RATE = 1; 
 const BANANA_ENERGY_BOOST = 30;
-const CRAB_ATTACK_DAMAGE = 20;
+const CRAB_ATTACK_DAMAGE = 90;
 const DEATH_RESTART_DELAY = 2000; 
 
 const LEVEL_CONFIG = {
@@ -45,6 +47,7 @@ export const GameProvider = ({ children }) => {
   const rubbingTimer = useRef(null);
   const rubbingStartTime = useRef(null);
 
+  // Game progress state
   const [gameProgress, setGameProgress] = useState({
     daysSpent: 0,
     currentLevel: 1,
@@ -57,7 +60,7 @@ export const GameProvider = ({ children }) => {
 
   // Energy decay and death check
   useEffect(() => {
-    if (!isDead && gameState === 'playing') {
+    if (!isDead && gameState === 'playing' && gameState !== 'completed') {
       const energyInterval = setInterval(() => {
         setEnergy((prev) => {
           const newEnergy = Math.max(0, prev - (ENERGY_DECAY_RATE / 10));
@@ -92,6 +95,7 @@ export const GameProvider = ({ children }) => {
     }
   }, [isDead]);
 
+  // Game state management functions
   const handleDeath = (reason = 'energy') => {
     if (isDead) return;
     setIsDead(true);
@@ -111,35 +115,37 @@ export const GameProvider = ({ children }) => {
 
     setIsDead(false);
     setEnergy(MAX_ENERGY);
-    setScore(score); // Maintain the current score
+    setScore(score); // Maintain current score
     clearInventory();
     setGameState('playing');
-    // Don't reset completed levels or current level on death
   };
 
-  const completeLevel = (levelNumber, user, isConnected) => {
+  const completeLevel = async (levelNumber, user) => {
     if (completedLevels.has(levelNumber)) {
-      console.log(`Level ${levelNumber} already completed, not sending duplicate data`);
+      console.log(`Level ${levelNumber} already completed`);
       return;
     }
 
-    if (websocketService.isConnected && user && !user.isGuest && isConnected) {
-      websocketService.sendMessage({
-        type: 'game_stats',
-        data: {
-          type: 'level_complete',
-          level: levelNumber,
+    try {
+      if (user && !user.isGuest) {
+        const result = await gameService.updateProgress(levelNumber, score);
+        console.log('Level progress updated:', result);
+        setCompletedLevels(prev => new Set([...prev, levelNumber]));
+        
+        // Update game progress
+        setGameProgress({
           daysSpent: score,
-          timestamp: Date.now()
-        }
-      });
+          currentLevel: levelNumber + 1
+        });
+      }
       
-      setCompletedLevels(prev => new Set([...prev, levelNumber]));
+      setCurrentLevel(prev => prev + 1);
+    } catch (error) {
+      console.error('Error completing level:', error);
     }
-    
-    setCurrentLevel(prev => prev + 1);
   };
 
+  // Stats management functions
   const eatBanana = () => {
     setEnergy((prev) => Math.min(MAX_ENERGY, prev + BANANA_ENERGY_BOOST));
   };
@@ -156,12 +162,12 @@ export const GameProvider = ({ children }) => {
     });
   };
 
-  // ... [Previous helper functions remain the same]
+  // Item management helper functions
   const isRock = (item) => item?.type === 'rock';
   const isTorch = (item) => item?.type === 'torch';
   const getRockCount = () => [leftHandItem, rightHandItem].filter(isRock).length;
 
-  // ... [Item management functions remain the same]
+  // Inventory management functions
   const addItem = (item) => {
     if (gameState !== 'playing') return false;
     
@@ -204,7 +210,7 @@ export const GameProvider = ({ children }) => {
     return null;
   };
 
-  // ... [Rubbing mechanics remain the same]
+  // Rubbing mechanics
   const startRubbing = () => {
     if (gameState !== 'playing') return;
     
@@ -248,19 +254,17 @@ export const GameProvider = ({ children }) => {
     stopRubbing();
   };
 
-  // Updated game completion function
-  const completeGame = (user, isConnected) => {
-    if (websocketService.isConnected && user && !user.isGuest && isConnected) {
-      websocketService.sendMessage({
-        type: 'game_stats',
-        data: {
-          type: 'game_completed',
-          daysToComplete: score,
-          timestamp: Date.now()
-        }
-      });
+  // Game completion
+  const completeGame = async (user) => {
+    try {
+      if (user && !user.isGuest) {
+        const result = await gameService.saveGameCompletion(score);
+        console.log('Game completion saved:', result);
+      }
+      setGameState('completed');
+    } catch (error) {
+      console.error('Error completing game:', error);
     }
-    setGameState('completed');
   };
 
   const value = {

@@ -3,6 +3,7 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { RigidBody } from '@react-three/rapier';
 import { useGame } from '../context/GameContext';
+import { audioManager } from '../services/AudioManager';
 
 export function Banana({ id, position, scale = 1 }) {
   const { nodes, materials } = useGLTF('models/Banana.glb');
@@ -21,6 +22,7 @@ export function Banana({ id, position, scale = 1 }) {
     if (!isCollected) {
       setIsCollected(true);
       eatBanana();
+      audioManager.playSound('coinSound', {volume: 0.5})
       if (rigidBodyRef.current) {
         rigidBodyRef.current.setTranslation({ x: 0, y: -100, z: 0 });
       }

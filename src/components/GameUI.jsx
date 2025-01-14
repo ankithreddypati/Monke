@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { audioManager } from '../services/AudioManager';
 import { Volume2, VolumeX, LogOut, HelpCircle } from 'lucide-react';
 
+
 export function GameUI({ onSignOut, user }) {
   const { energy, score, gameState, currentLevel } = useGame();
   const [isMuted, setIsMuted] = useState(false);

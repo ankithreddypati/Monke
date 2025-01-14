@@ -6,6 +6,10 @@ import jumpSound from '../assets/sounds/jump.mp3';
 import cutscenePart1Sound from "../assets/sounds/jo1.mp3";
 import cutscenePart2Sound from "../assets/sounds/jo2.mp3";
 import backgroundSound from "../assets/sounds/backgroundmusic.mp3"
+import doorOpenSound from "../assets/sounds/dooropening.mp3"
+import coinSound  from "../assets/sounds/coin.mp3"
+import robotquestion from "../assets/sounds/robotquestion1.mp3"
+import robotquestion2 from "../assets/sounds/robotquestion2.mp3"
 
 class AudioManager {
   constructor() {
@@ -201,6 +205,11 @@ export const initializeGameSounds = async () => {
     cutscene_part1: cutscenePart1Sound,
     cutscene_part2: cutscenePart2Sound, 
     backgroundSound: backgroundSound,
+    doorOpenSound: doorOpenSound,
+    coinSound: coinSound,
+    robotquestion: robotquestion,
+    robotquestion2: robotquestion2
+    
   };
 
   

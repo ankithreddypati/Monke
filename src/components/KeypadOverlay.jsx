@@ -9,6 +9,7 @@ const KeypadOverlay = ({ playerRef, onCorrectCode }) => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [code, setCode] = useState('');
+  const [showError, setShowError] = useState(false);
   const correctCode = '1337';
 
   useEffect(() => {
@@ -24,20 +25,30 @@ const KeypadOverlay = ({ playerRef, onCorrectCode }) => {
         if (/^\d$/.test(event.key)) {
           setCode(prevCode => {
             const newCode = (prevCode + event.key).slice(0, 4);
-            if (newCode === correctCode) {
-              onCorrectCode();
-              setTimeout(() => {
-                setCode('');
-                setIsActive(false);
-              }, 500);
+            if (newCode.length === 4) {
+              if (newCode === correctCode) {
+                onCorrectCode();
+                setTimeout(() => {
+                  setCode('');
+                  setIsActive(false);
+                }, 500);
+              } else {
+                setShowError(true);
+                setTimeout(() => {
+                  setShowError(false);
+                  setCode('');
+                }, 1000);
+              }
             }
             return newCode;
           });
         } else if (event.key === 'Escape') {
           setIsActive(false);
           setCode('');
+          setShowError(false);
         } else if (event.key === 'Backspace') {
           setCode(prevCode => prevCode.slice(0, -1));
+          setShowError(false);
         }
       }
     };
@@ -46,7 +57,6 @@ const KeypadOverlay = ({ playerRef, onCorrectCode }) => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [showPrompt, isActive, onCorrectCode]);
 
-  // Check player's distance from the keypad
   useEffect(() => {
     const checkDistance = () => {
       if (!playerRef.current) return;
@@ -59,6 +69,7 @@ const KeypadOverlay = ({ playerRef, onCorrectCode }) => {
       if (!withinRange && isActive) {
         setIsActive(false);
         setCode('');
+        setShowError(false);
       }
       setShowPrompt(withinRange && !isActive);
     };
@@ -107,16 +118,17 @@ const KeypadOverlay = ({ playerRef, onCorrectCode }) => {
             }}>Security Keypad</h2>
             <div style={{
               backgroundColor: '#000',
-              color: '#0f0',
+              color: showError ? '#ff0000' : '#0f0',
               padding: '1rem',
               borderRadius: '8px',
               fontFamily: 'monospace',
               fontSize: '2rem',
               textAlign: 'center',
               marginBottom: '1rem',
-              letterSpacing: '0.5rem'
+              letterSpacing: '0.5rem',
+              transition: 'color 0.2s ease'
             }}>
-              {code.padEnd(4, '•')}
+              {showError ? 'ERROR' : code.padEnd(4, '•')}
             </div>
             <p style={{
               color: '#666',

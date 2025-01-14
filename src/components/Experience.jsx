@@ -21,18 +21,21 @@ import { Level2door } from "./level2door";
 import { RobotController } from "./RobotController";
 import { audioManager } from "../services/AudioManager";
 import ComputerInteraction from "./ComputerInteraction";
-import GameCompletionOverlay from "./GameCompletionOverlay";
 import KeypadOverlay from './KeypadOverlay';
-import { websocketService } from '../services/webSocketService';
+import { gameService } from '../services/gameService';
+import { PortalTransition } from "./PortalTransition";
+import TriggerMarker from "./TriggerMarker";
+import LightBeam from "./LightBeam";
+import { ComputerGameImage } from "./ComputerGameImage";
 
 const LEVEL_CONFIG = {
   1: {
-    transitionPoint: [43, 5, -190],
+    transitionPoint: [43, 5, -193],
     nextLevel: 2,
     spawnPoint: [-5, 10, -60],
   },
   2: {
-    transitionPoint: [35, 39, -200],
+    transitionPoint: [35, 39, -201],
     nextLevel: 3,
     spawnPoint: [0, 5, -5],
   },
@@ -43,7 +46,7 @@ const LEVEL_CONFIG = {
   },
 };
 
-export const Experience = ({ playerName, gameStarted, user, isConnected, gameState }) => {
+export const Experience = ({ playerName, gameStarted, user, leaderboardData, onGameComplete }) => {
   const { 
     currentLevel: startLevel, 
     setCurrentLevel: setGameLevel, 
@@ -52,7 +55,9 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
     rightHandItem, 
     score,
     completeLevel,
-    completedLevels
+    completedLevels,
+    setGameState,
+    gameState
   } = useGame();
 
   const [currentAnimation, setCurrentAnimation] = useState("orcidle");
@@ -77,21 +82,18 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
 
   const handleLevelComplete = async (levelNumber) => {
     if (levelNumber === 3) {
-      console.log("Game Complete!");
-      if (user && !user.isGuest && isConnected) {
-        websocketService.sendGameCompletion(score, user.username);
-      }
+      setGameState('completed');
       setIsGameComplete(true);
       return;
     }
-
+  
     console.log(`Transitioning from level ${levelNumber} to ${LEVEL_CONFIG[levelNumber].nextLevel}`);
     setIsTransitioning(true);
-
+  
     if (!completedLevels.has(levelNumber)) {
-      completeLevel(levelNumber, user, isConnected);
+      completeLevel(levelNumber, user);
     }
-
+  
     if (leftHandItem) {
       dropActiveItem('left');
     }
@@ -99,11 +101,11 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
       dropActiveItem('right');
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
-
+  
     const nextLevel = LEVEL_CONFIG[levelNumber].nextLevel;
     setCurrentLevel(nextLevel);
     setGameLevel(nextLevel);
-
+  
     if (playerRef.current) {
       const spawnPoint = LEVEL_CONFIG[nextLevel].spawnPoint;
       playerRef.current.setTranslation({
@@ -113,7 +115,7 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
       });
       console.log('Player spawned at:', spawnPoint);
     }
-
+  
     setTimeout(() => {
       setIsTransitioning(false);
       console.log('Transition complete');
@@ -137,7 +139,8 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
           Math.abs(playerPosition.y - targetY) < 5 && 
           Math.abs(playerPosition.z - targetZ) < 5;
         
-        if (isNearTransitionPoint) {
+          if (isNearTransitionPoint && 
+            (currentLevel !== 2 || (level2DoorRef.current && level2DoorRef.current.isOpen))) {
           handleLevelComplete(currentLevel);
         }
       }
@@ -168,9 +171,9 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         playerPosition.z
       ).distanceTo(incubationPosition);
 
-      setCurrentAnimation("floating");
+      setCurrentAnimation("deepsleep");
   
-      console.log('Distance to target:', distanceToTarget);
+     // console.log('Distance to target:', distanceToTarget);
   
       if (distanceToTarget > 0.5) {
         const newPosition = new Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
@@ -198,7 +201,9 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
               }
               setAudio2Finished(true);
               setShowVideo(true);
+              setGameState('completed');
               setIsGameComplete(true); 
+              onGameComplete(score);
               console.log('Game completion state set:', true);
             },
           });
@@ -216,7 +221,10 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
     console.log('Game completion state changed:', isGameComplete);
   }, [isGameComplete]);
 
-  const triggerCutscene = () => {
+  const triggerCutscene = async () => {
+    // Prevent multiple triggers
+    if (cutsceneTriggered) return;
+    
     console.log("Cutscene triggered");
     setCutsceneTriggered(true);
     setCutsceneProgress(0);
@@ -225,16 +233,26 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
     setPlayerMovementComplete(false);
     setShowVideo(false);
     
+    // Save game completion immediately for registered users (only once)
+    if (user && !user.isGuest) {
+      try {
+        console.log('Saving game completion for user:', user.username, 'with score:', score);
+        const result = await gameService.saveGameCompletion(score);
+        console.log('Game completion saved successfully:', result);
+      } catch (error) {
+        console.error('Failed to save game completion:', error);
+      }
+    } else {
+      console.log('Skipping game completion save - guest user');
+    }
+  
+    // Play cutscene audio after saving
     audioManager.playSound("cutscene_part1", {
       onEnd: () => {
         console.log("Cutscene part 1 audio finished - Starting movement");
         setAudio1Finished(true);
       },
     });
-
-    if (user && !user.isGuest && isConnected) {
-      websocketService.sendGameCompletion(score, user.username);
-    }
   };
 
   return (
@@ -259,7 +277,7 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
         />
       </directionalLight>
 
-      <Physics>
+      <Physics >
         <Skybox />
         <CharacterController
           ref={playerRef}
@@ -275,37 +293,41 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
           <>
             <Level1 />
             <CrabController 
-              position={[33.5, 1, -157]} 
+              position={[36, 1, -152]} 
               playerRef={playerRef} 
-              chaseRange={10} 
-              attackRange={2} 
+              chaseRange={15} 
+              attackRange={5} 
               speed={4} 
             />
             <NPCController
+            
               playerRef={playerRef}
-              position={[28.5, 1, -115]}
+              position={[-40, 1, -94]}
               defaultAnimation="praying" 
               noticeRange={8}
               talkRange={3}
               walkSpeed={5}
               user={user}
-              gameId={gameState?.id}
-              gameState={gameState}
+              
               botId={import.meta.env.VITE_LEX_BOT_LEVEL1_ID}
               botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL1_ID}
             />
+           
+            
             <Rock id="rock1" position={[23.5, -0.5, -92]} playerRef={playerRef} />
-            <Rock id="rock2" position={[36, -0.5, -96.5]} playerRef={playerRef} />
+            <Rock id="rock2" position={[-19, -1.8, -141]} playerRef={playerRef} />
             <Fire id="fire1" position={[37.5, 0.8, -119.0]} visible={fireVisible} scale={6} />
             <Torch
               id="torch1"
-              position={[39.5, -0, -117.0]}
+              position={[39.5, -0, -117.0]}d
               scale={0.9}
               rotation={[0, -Math.PI / 2, 0]}
               isLit={torchLit}
               playerRef={playerRef}
             />
-            <Banana id="banana2" position={[43, 5, -190]} />
+            <Banana id="banana2" position={[39, 5, -186]} />
+            {/* <Banana id="banana3" position={[36, 5, -186]} /> */}
+            <PortalTransition position={[43, 10, -191]} width={13} height={20} />
           </>
         )}
 
@@ -317,6 +339,11 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
               position={[36, 37.9, -199]} 
               playerRef={playerRef} 
             />
+            <ComputerGameImage 
+                position={[54.7, 38.1, -140.01]}
+                rotation={[0, Math.PI, 0]} 
+                scale={[1.4, 1.25,2]} 
+              />
             <ComputerInteraction 
               playerRef={playerRef}
               onScoreReached={() => {
@@ -336,20 +363,23 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
             />
 
             <NPCController
+              
               playerRef={playerRef}
-              position={[64, 37, -144]} 
+              position={[62, 37, -144]} 
               defaultAnimation="dance"
               noticeRange={8}
               talkRange={3}
               walkSpeed={5}
               user={user}
-              gameId={gameState?.id}
-              gameState={gameState}
+            
               botId={import.meta.env.VITE_LEX_BOT_LEVEL2_ID} 
               botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL2_ID} 
             />
-            <Banana id="banana13" position={[35, 39, -201]} />
-            <Banana id="banana14" position={[54, 37, -143]} />
+          <PortalTransition position={[36, 42, -200]} width={13} height={20} />
+          
+            {/* <Banana id="banana13" position={[35, 39, -201]} /> */}
+            {/* <Banana id="banana14" position={[54, 37, -143]} /> */}
+            <Banana id="banana14" position={[3, 22, -56]} />
           </>
         )}
 
@@ -357,44 +387,27 @@ export const Experience = ({ playerName, gameStarted, user, isConnected, gameSta
           <>
             <Level3 showVideo={showVideo} />
             <RobotController 
-              position={[14, 2, -81]} 
-              playerRef={playerRef} 
-              chaseRange={15} 
-              attackRange={3} 
-              speed={3} 
-            />
+            playerRef={playerRef}
+            position={[3.8, 2, -81]} 
+            chaseRange={32} 
+            attackRange={5} 
+            speed={15}
+            user={user} 
+            botId={import.meta.env.VITE_LEX_BOT_LEVEL3_ID} 
+            botAliasId={import.meta.env.VITE_LEX_BOT_ALIAS_LEVEL3_ID} 
+              />
+            
             <Banana id="banana7" position={[2.5, -3, -18]} />
             <Banana id="banana8" position={[4.5, -5, -158]} />
+            <TriggerMarker position={[5, 4, -178.5]} scale={0.6} />
+            <LightBeam position={[5.2, 3, -176.5]} scale={2.2} />
+
+
           </>
         )}
       </Physics>
 
-      {isGameComplete && (
-        <GameCompletionOverlay 
-          score={score}
-          onRestart={() => {
-            setCurrentLevel(1);
-            setGameLevel(1);
-            setIsGameComplete(false);
-            setCutsceneTriggered(false);
-            setAudio1Finished(false);
-            setAudio2Finished(false);
-            setShowVideo(false);
-            setPlayerMovementComplete(false);
-            setCurrentAnimation("orcidle");
-            
-            if (playerRef.current) {
-              const spawnPoint = LEVEL_CONFIG[1].spawnPoint;
-              playerRef.current.setTranslation({
-                x: spawnPoint[0],
-                y: spawnPoint[1],
-                z: spawnPoint[2],
-              });
-            }
-          }}
-          user={user}
-        />
-      )}
+     
 
       {isTransitioning && (
         <Html fullscreen>

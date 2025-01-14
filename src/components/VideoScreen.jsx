@@ -25,7 +25,7 @@ const VideoScreen = ({ position = [0, 0, 0], rotation = [0, 0, 0], scale = [4, 2
 
     return () => {
       video.pause();
-      video.remove(); // Cleanup
+      video.remove(); 
     };
   }, [videoSrc]);
 

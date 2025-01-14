@@ -8,7 +8,7 @@ const PacmanGame = ({ isPlaying, onExit }) => {
   const [gameStarted, setGameStarted] = useState(false);
   const requestRef = useRef();
   const keysRef = useRef({});
-  const WINNING_SCORE = 1337; 
+  const WINNING_SCORE = 1337;
   
   const gameStateRef = useRef({
     pacman: {
@@ -17,19 +17,19 @@ const PacmanGame = ({ isPlaying, onExit }) => {
       dx: 0,
       dy: 0,
       radius: 11,
-      speed: 4, // Increased speed
+      speed: 4,
     },
     ghosts: [
-      { x: 105, y: 105, color: "red", dx: 1.5, dy: 0, speed: 1.5 }, // Slower ghosts
+      { x: 105, y: 105, color: "red", dx: 1.5, dy: 0, speed: 1.5 },
       { x: 345, y: 345, color: "blue", dx: -1.5, dy: 0, speed: 1.5 }
     ],
     pellets: [],
-    powerPellets: [], // New: power pellets that give more points
+    powerPellets: [],
     map: [
       [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
       [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
       [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1],
-      [1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1], 
+      [1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1],
       [1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1],
       [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
       [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1],
@@ -161,7 +161,6 @@ const PacmanGame = ({ isPlaying, onExit }) => {
       }
     }
   };
-  
 
   const moveGhosts = () => {
     gameStateRef.current.ghosts.forEach((ghost) => {
@@ -280,7 +279,7 @@ const PacmanGame = ({ isPlaying, onExit }) => {
           pellet.active = false;
           setScore(prevScore => {
             const newScore = prevScore + 13;
-            if (newScore === WINNING_SCORE) {
+            if (newScore >= WINNING_SCORE) {
               setGameWon(true);
             }
             return newScore;
@@ -300,7 +299,7 @@ const PacmanGame = ({ isPlaying, onExit }) => {
           pellet.active = false;
           setScore(prevScore => {
             const newScore = prevScore + 36;
-            if (newScore === WINNING_SCORE) {
+            if (newScore >= WINNING_SCORE) {
               setGameWon(true);
             }
             return newScore;
@@ -327,6 +326,7 @@ const PacmanGame = ({ isPlaying, onExit }) => {
     requestRef.current = requestAnimationFrame(gameLoop);
   };
 
+  // Game controls
   // Game controls
   useEffect(() => {
     if (!isPlaying) return;
@@ -366,36 +366,90 @@ const PacmanGame = ({ isPlaying, onExit }) => {
     }
   };
 
+  // Add styles for winning score display
+  const styles = {
+    scoreDisplay: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      fontSize: '72px',
+      color: '#FFD700',
+      fontWeight: 'bold',
+      textShadow: '4px 4px 8px rgba(0, 0, 0, 0.8)',
+      zIndex: 10,
+      fontFamily: 'Arial, sans-serif',
+      animation: 'pulse 1s infinite'
+    }
+  };
+
   return (
-    <div className="relative bg-black p-4 rounded-lg">
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-white text-xl"> USE ARROW KEYS TO PLAY | Score: {score}</div>
+    <div style={{ position: 'relative', background: 'black', padding: '20px', borderRadius: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ color: 'white', fontSize: '20px' }}> USE ARROW KEYS | Score: {score}</div>
         <button
           onClick={handleExit}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          style={{
+            backgroundColor: '#ff4444',
+            color: 'white',
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
         >
           Exit Game
         </button>
       </div>
       
-      <canvas
-        ref={canvasRef}
-        className="border-2 border-blue-600 mx-auto block"
-      />
+      <div style={{ position: 'relative' }}>
+        <canvas
+          ref={canvasRef}
+          style={{ border: '2px solid #0000FF', display: 'block', margin: '0 auto' }}
+        />
+        {/* Only show winning score when game is won */}
+        {gameWon && (
+          <div style={{
+            ...styles.scoreDisplay,
+            animation: 'pulse 1s infinite',
+            '@keyframes pulse': {
+              '0%': { transform: 'translate(-50%, -50%) scale(1)' },
+              '50%': { transform: 'translate(-50%, -50%) scale(1.2)' },
+              '100%': { transform: 'translate(-50%, -50%) scale(1)' }
+            }
+          }}>
+            {/* {WINNING_SCORE} */}
+          </div>
+        )}
+      </div>
       
       {(gameOver || gameWon) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70">
-          <div className={`text-4xl mb-4 ${gameWon ? 'text-green-500' : 'text-red-500'}`}>
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)'
+        }}>
+          <div style={{
+            fontSize: '36px',
+            marginBottom: '16px',
+            color: gameWon ? '#4CAF50' : '#ff4444'
+          }}>
             {gameWon ? 'You Won!' : 'Game Over!'}
           </div>
-          <div className="text-white text-xl mb-4">Final Score: {score}</div>
-          <div className="space-x-4">
+          <div style={{ color: 'white', fontSize: '24px', marginBottom: '16px' }}>
+            Final Score == {score}
+          </div>
+          <div style={{ display: 'flex', gap: '16px' }}>
             <button
               onClick={() => {
                 setGameOver(false);
                 setGameWon(false);
                 setScore(0);
-                setGameStarted(true);
+                setGameStarted(false);
                 // Reset game state
                 gameStateRef.current.pacman = {
                   ...gameStateRef.current.pacman,
@@ -408,14 +462,50 @@ const PacmanGame = ({ isPlaying, onExit }) => {
                   { x: 105, y: 105, color: "red", dx: 1.5, dy: 0, speed: 1.5 },
                   { x: 345, y: 345, color: "blue", dx: -1.5, dy: 0, speed: 1.5 }
                 ];
+                // Reset all pellets
+                const CELL_SIZE = 30;
+                gameStateRef.current.pellets = [];
+                gameStateRef.current.powerPellets = [];
+                
+                for (let row = 0; row < gameStateRef.current.map.length; row++) {
+                  for (let col = 0; col < gameStateRef.current.map[0].length; col++) {
+                    if (gameStateRef.current.map[row][col] === 0) {
+                      gameStateRef.current.pellets.push({
+                        x: col * CELL_SIZE + CELL_SIZE / 2,
+                        y: row * CELL_SIZE + CELL_SIZE / 2,
+                        active: true,
+                      });
+                    } else if (gameStateRef.current.map[row][col] === 2) {
+                      gameStateRef.current.powerPellets.push({
+                        x: col * CELL_SIZE + CELL_SIZE / 2,
+                        y: row * CELL_SIZE + CELL_SIZE / 2,
+                        active: true,
+                      });
+                    }
+                  }
+                }
               }}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              style={{
+                backgroundColor: '#4444ff',
+                color: 'white',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
             >
               Play Again
             </button>
             <button
               onClick={handleExit}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              style={{
+                backgroundColor: '#ff4444',
+                color: 'white',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
             >
               Exit
             </button>

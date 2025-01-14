@@ -1,4 +1,3 @@
-//CrabController.jsx
 import React, { useRef, useState, useEffect } from "react";
 import { RigidBody, CapsuleCollider } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
@@ -10,7 +9,7 @@ export function CrabController({
   playerRef,
   chaseRange = 10,
   speed = 2,
-  idleAnimation = "MonsterArmature|Bite_InPlace",
+  idleAnimation = "MonsterArmature|Yes",
   walkAnimation = "MonsterArmature|Walk",
   attackAnimation = "MonsterArmature|Bite_Front",
   ...props
@@ -23,11 +22,12 @@ export function CrabController({
   const TORCH_FEAR_RANGE = 15;
   const DAMAGE_COOLDOWN = 1000; // 1 second between damage ticks
   const lastDamageTime = useRef(0);
-
   const isTouchingPlayer = useRef(false);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!crabRigidBody.current || !playerRef?.current) return;
+
+    const currentTime = state.clock.getElapsedTime() * 1000; // Convert to milliseconds
 
     const { x: cx, y: cy, z: cz } = crabRigidBody.current.translation();
     const crabPosition = new Vector3(cx, cy, cz);

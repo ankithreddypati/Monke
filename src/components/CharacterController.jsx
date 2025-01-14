@@ -14,15 +14,19 @@ import { useGame } from "../context/GameContext";
 import { useGLTF } from "@react-three/drei";
 import { Fire } from './fire';
 import { audioRecorderService } from "../services/audioRecorderService";
-import { websocketService } from "../services/webSocketService";
 
 
-const FALL_DEATH_Y = -30;
-const FALL_VELOCITY_THRESHOLD = -50; 
-const FALL_TIME_THRESHOLD = 2000; 
+const FALL_DEATH_Y = {
+  1: -15, 
+  2: -20, 
+  3: -16  
+};
 
 const HeldItem = () => {
-  const { leftHandItem, rightHandItem } = useGame();
+  const {  
+    leftHandItem, 
+    rightHandItem,
+    } = useGame();
   const { nodes: rockNodes, materials: rockMaterials } = useGLTF('models/Rock.glb');
   const { nodes: torchNodes, materials: torchMaterials } = useGLTF('models/firetorch.glb');
 
@@ -105,7 +109,8 @@ export const CharacterController = forwardRef(({ animation = "orcidle", disabled
     activeItem, 
     dropActiveItem, 
     leftHandItem, 
-    rightHandItem 
+    rightHandItem ,
+    currentLevel
   } = useGame();
   
   const [currentAnimation, setCurrentAnimation] = useState(animation);
@@ -133,7 +138,7 @@ export const CharacterController = forwardRef(({ animation = "orcidle", disabled
   // });
 
   const WALK_SPEED = 3;
-const RUN_SPEED = 6;
+const RUN_SPEED = 8;
 const ROTATION_SPEED = degToRad(1);
 const JUMP_FORCE = 5;
 
@@ -204,40 +209,16 @@ const JUMP_FORCE = 5;
   };
 
   // Fall detection handler
+  // Simple fall detection based on current level
   const handleFallDetection = () => {
     if (!rb.current || gameState !== 'playing') return;
-
+    
     const position = rb.current.translation();
-    const velocity = rb.current.linvel();
-
-    if (position.y < FALL_DEATH_Y) {
+    const deathY = FALL_DEATH_Y[currentLevel] || -15; 
+    
+    if (position.y < deathY) {
       handleDeath('fall');
-      return;
     }
-
-    if (velocity.y < FALL_VELOCITY_THRESHOLD) {
-      handleDeath('fall');
-      return;
-    }
-
-    if (!previousY.current) {
-      previousY.current = position.y;
-      return;
-    }
-
-    if (position.y < previousY.current && !isGrounded.current) {
-      if (!fallStartTime.current) {
-        fallStartTime.current = Date.now();
-      }
-      else if (Date.now() - fallStartTime.current > FALL_TIME_THRESHOLD) {
-        handleDeath('fall');
-        return;
-      }
-    } else {
-      fallStartTime.current = null;
-    }
-
-    previousY.current = position.y;
   };
 
   useFrame(({ camera }) => {
@@ -261,9 +242,7 @@ const JUMP_FORCE = 5;
     if (get().talk && !isTalking) {
       setIsTalking(true);
       setCurrentAnimation("talking");
-      audioRecorderService.startRecording((audioMessage) => {
-        websocketService.sendMessage(audioMessage);
-      });
+ 
     }
 
     if (get().drop && activeItem) {
@@ -271,7 +250,6 @@ const JUMP_FORCE = 5;
       audioManager.playSound('drop', { volume: 0.5 });
     }
 
-    // Handle rock rubbing action
     if (get().action && nearFire && hasTwoRocks) {
       if (props.onRubRocks) {
         props.onRubRocks();
@@ -388,7 +366,7 @@ const JUMP_FORCE = 5;
         <group ref={cameraTarget} position-z={1.5} />
         <group ref={cameraPosition} position-y={4} position-z={-4} />
         <group ref={character}>
-          <Character scale={270} position-y={-2} animation={currentAnimation} />
+          <Character scale={290} position-y={-2} animation={currentAnimation} />
           <HeldItem />
         </group>
       </group>

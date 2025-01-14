@@ -55,10 +55,10 @@ export function RobotEnemy({ animation = "CharacterArmature|Idle", health = 100,
       
       <group name="Root_Scene">
         <group name="RootNode">
-          <group name="CharacterArmature" rotation={[-Math.PI / 2, 0, 0]} scale={100}>
+          <group name="CharacterArmature" rotation={[-Math.PI / 2, 0, 0]} scale={160}>
             <primitive object={nodes.Root} />
           </group>
-          <group name="Enemy_Robot_2Legs" rotation={[-Math.PI / 2, 0, 0]} scale={100}>
+          <group name="Enemy_Robot_2Legs" rotation={[-Math.PI / 2, 0, 0]} scale={160}>
             <skinnedMesh
               name="Enemy_Robot_2Legs_1"
               geometry={nodes.Enemy_Robot_2Legs_1.geometry}

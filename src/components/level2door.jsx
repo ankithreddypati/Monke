@@ -1,24 +1,39 @@
-import React, { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect, forwardRef, useState } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { RigidBody } from '@react-three/rapier';
+import * as THREE from 'three';
+import { audioManager } from '../services/AudioManager';
+
 
 export const Level2door = forwardRef(({ position }, ref) => {
+  const [isOpen, setIsOpen] = useState(false); 
   const group = useRef();
   const { nodes, materials, animations } = useGLTF('models/sci-fi_door_opening_animation-transformed.glb');
   const { actions } = useAnimations(animations, group);
 
-  // Expose the animation method through ref
+  useEffect(() => {
+    if (actions['Default_Open']) {
+      actions['Default_Open'].setLoop(THREE.LoopOnce); 
+      actions['Default_Open'].clampWhenFinished = true; 
+    }
+  }, [actions]);
+
   if (ref) {
     ref.current = {
+      isOpen,  // Add this
       playOpenAnimation: () => {
-        actions['Default_Open'].reset().play();
+        if (actions['Default_Open']) {
+          actions['Default_Open'].reset().play();
+          audioManager.playSound('doorOpenSound', { volume: 0.5 });
+          setIsOpen(true);  
+        }
       }
     };
   }
 
   return (
     <RigidBody type="fixed" colliders="trimesh">
-      <group position={position} scale={5.5}>
+      <group position={position} scale={6.5}>
         <group ref={group} dispose={null}>
           <group name="Sketchfab_Scene">
             <group name="Object_4" scale={0.01}>

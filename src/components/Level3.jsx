@@ -14,16 +14,16 @@ export const Level3 = ({ showVideo = false }) => {
 
       <primitive object={decorations} position={[0, -5, 0]} scale={1} />
 
-      {/* Only render VideoScreen when showVideo is true */}
       {showVideo && (
         <VideoScreen
-          position={[4.73, 5.4, -211.53]}
+          position={[4.73, 5, -210.53]}
           rotation={[Math.PI / 4, Math.PI, 0]} 
           scale={[2.5, 1.45, 1]}
           videoSrc="/videos/record.mp4"
-          playing={true}  
+          playing={false}  
         />
       )}
+      
     </>
   );
 };
